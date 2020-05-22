@@ -3,13 +3,6 @@ load $BATS_TEST_DIRNAME/helper/common.bash
 
 setup() {
     setup_common
-}
-
-teardown() {
-    teardown_common
-}
-
-@test "diff summary comparing working table to last commit" {
     dolt sql <<SQL
 CREATE TABLE test (
   pk BIGINT NOT NULL COMMENT 'tag:0',
@@ -21,6 +14,13 @@ CREATE TABLE test (
   PRIMARY KEY (pk)
 );
 SQL
+}
+
+teardown() {
+    teardown_common
+}
+
+@test "diff summary comparing working table to last commit" {
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt sql -q "insert into test values (1, 1, 1, 1, 1, 1)"
     dolt add test
@@ -62,17 +62,6 @@ SQL
 }
 
 @test "diff summary comparing row with a deleted cell and an added cell" {
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
     dolt add test
     dolt commit -m "create table"
     dolt sql -q "insert into test values (0, 1, 2, 3, 4, 5)"
@@ -102,17 +91,6 @@ SQL
 
 @test "diff summary comparing two branches" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt add test
     dolt commit -m "Added one row"
@@ -156,17 +134,6 @@ SQL
 }
 
 @test "diff summary gets summaries for all tables with changes" {
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL,
-  c1 BIGINT,
-  c2 BIGINT,
-  c3 BIGINT,
-  c4 BIGINT,
-  c5 BIGINT,
-  PRIMARY KEY (pk)
-);
-SQL
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt sql -q "insert into test values (1, 1, 1, 1, 1, 1)"
     dolt sql <<SQL
@@ -196,17 +163,6 @@ SQL
 }
 
 @test "diff with where clause" {
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt sql -q "insert into test values (1, 1, 1, 1, 1, 1)"
     dolt add test
@@ -265,17 +221,6 @@ SQL
 }
 
 @test "diff with where clause errors" {
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt sql -q "insert into test values (1, 1, 1, 1, 1, 1)"
     dolt add test
@@ -297,17 +242,6 @@ SQL
 }
 
 @test "diff --cached" {
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
     skip "diff --cached not supported"
     run dolt diff --cached
     [ $status -wq 0 ]
