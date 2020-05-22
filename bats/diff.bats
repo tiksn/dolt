@@ -220,6 +220,31 @@ SQL
     ! [[ "$output" =~ "55" ]] || false
 }
 
+@test "diff where with two tables" {
+    cat <<DELIM > test2.csv
+key,val
+0,0
+1,1
+DELIM
+    dolt table import -c --pk=key test2 test2.csv
+    dolt add .
+    dolt commit -m "created tables"
+    dolt sql -q 'insert into test values (3,3,3,3,3,3)'
+    dolt sql -q 'insert into test2 values (4,4)'
+    run dolt diff test --where="pk=3"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " 3 " ]] || false
+    run dolt diff test2 --where="key=4"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " 4 " ]] || false
+
+    # give a where clause that only applies to one table
+    run dolt diff --where="pk=3"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " 3 " ]] || false
+    ! [[ "$output" =~ " 4 " ]] || false
+}
+
 @test "diff with where clause errors" {
     dolt sql -q "insert into test values (0, 0, 0, 0, 0, 0)"
     dolt sql -q "insert into test values (1, 1, 1, 1, 1, 1)"
