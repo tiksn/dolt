@@ -220,7 +220,7 @@ SQL
     ! [[ "$output" =~ "55" ]] || false
 }
 
-@test "diff where with two tables" {
+@test "diff --where with two tables" {
     cat <<DELIM > test2.csv
 key,val
 0,0
@@ -243,6 +243,29 @@ DELIM
     [ "$status" -eq 0 ]
     [[ "$output" =~ " 3 " ]] || false
     ! [[ "$output" =~ " 4 " ]] || false
+}
+
+@test "diff --where supports full SQL syntax" {
+    cat <<DELIM > test2.csv
+pk,str,date
+0,abc,1920-02-02
+1,xyz,2020-02-02
+2,123,2120-02-02
+DELIM
+    dolt schema import -c -pks=pk test2 test2.csv
+    dolt add .
+    dolt commit -m "created test2"
+    dolt table import -u -pk=pk test2 test2.csv
+    skip "diff --where only supports format 'key=value'"
+    run dolt diff test2 --where "pk > 1"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " 2 " ]] || false
+    run dolt diff test2 --where "str like %y%"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " xyz " ]] || false
+    run dolt diff test2 --where "date > now()"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ " 2120-02-02 " ]] || false
 }
 
 @test "diff with where clause errors" {
