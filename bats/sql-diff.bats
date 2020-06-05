@@ -3,15 +3,8 @@ load $BATS_TEST_DIRNAME/helper/common.bash
 
 setup() {
     setup_common
-}
 
-teardown() {
-    teardown_common
-}
-
-@test "diff sql output reconciles INSERT query" {
-    dolt checkout -b firstbranch
-    dolt sql <<SQL
+    cat <<SQL > 1pk5col-ints-sch.sql
 CREATE TABLE test (
   pk BIGINT NOT NULL COMMENT 'tag:0',
   c1 BIGINT COMMENT 'tag:1',
@@ -22,6 +15,15 @@ CREATE TABLE test (
   PRIMARY KEY (pk)
 );
 SQL
+}
+
+teardown() {
+    teardown_common
+}
+
+@test "diff sql output reconciles INSERT query" {
+    dolt checkout -b firstbranch
+    dolt sql < 1pk5col-ints-sch.sql
     dolt table import -u test `batshelper 1pk5col-ints.csv`
     dolt add test
     dolt commit -m "Added one initial row"
@@ -51,17 +53,7 @@ SQL
 
 @test "diff sql output reconciles UPDATE query" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt table import -u test `batshelper 1pk5col-ints.csv`
     dolt add test
     dolt commit -m "Added one initial row"
@@ -91,17 +83,7 @@ SQL
 
 @test "diff sql output reconciles DELETE query" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt table import -u test `batshelper 1pk5col-ints.csv`
     dolt add test
     dolt commit -m "Added one initial row"
@@ -131,17 +113,7 @@ SQL
 
 @test "diff sql output reconciles change to PRIMARY KEY field in row " {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt table import -u test `batshelper 1pk5col-ints.csv`
     dolt add test
     dolt commit -m "Added one initial row"
@@ -170,19 +142,8 @@ SQL
 }
 
 @test "diff sql output reconciles column rename" {
-
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "added row"
@@ -212,17 +173,7 @@ SQL
 
 @test "diff sql output reconciles DROP column query" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "added row"
@@ -252,17 +203,7 @@ SQL
 
 @test "diff sql output reconciles ADD column query" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "added row"
@@ -293,17 +234,7 @@ SQL
 @test "diff sql reconciles CREATE TABLE" {
     dolt checkout -b firstbranch
     dolt checkout -b newbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt add .
     dolt commit -m "created new table"
 
@@ -327,17 +258,7 @@ SQL
 @test "diff sql includes row INSERTSs to new tables after CREATE TABLE" {
     dolt checkout -b firstbranch
     dolt checkout -b newbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt sql -q 'insert into test values (2,2,2,2,2,2)'
     dolt sql -q 'insert into test values (3,3,3,3,3,3)'
@@ -365,17 +286,7 @@ SQL
 
 @test "diff sql reconciles DROP TABLE" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "setup table"
@@ -406,17 +317,7 @@ SQL
 
 @test "diff sql reconciles RENAME TABLE" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "created table"
@@ -448,17 +349,7 @@ SQL
 
 @test "diff sql reconciles RENAME TABLE with schema changes" {
     dolt checkout -b firstbranch
-    dolt sql <<SQL
-CREATE TABLE test (
-  pk BIGINT NOT NULL COMMENT 'tag:0',
-  c1 BIGINT COMMENT 'tag:1',
-  c2 BIGINT COMMENT 'tag:2',
-  c3 BIGINT COMMENT 'tag:3',
-  c4 BIGINT COMMENT 'tag:4',
-  c5 BIGINT COMMENT 'tag:5',
-  PRIMARY KEY (pk)
-);
-SQL
+    dolt sql < 1pk5col-ints-sch.sql
     dolt sql -q 'insert into test values (1,1,1,1,1,1)'
     dolt add .
     dolt commit -m "created table"
