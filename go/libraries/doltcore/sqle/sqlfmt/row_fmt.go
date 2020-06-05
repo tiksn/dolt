@@ -40,40 +40,30 @@ func QuoteComment(s string) string {
 }
 
 func RowAsInsertStmt(r row.Row, tableName string, tableSch schema.Schema) (string, error) {
-	var b strings.Builder
-	b.WriteString("INSERT INTO ")
-	b.WriteString(QuoteIdentifier(tableName))
-	b.WriteString(" ")
-
-	b.WriteString("(")
+	var c strings.Builder
+	var v strings.Builder
 	seenOne := false
-	err := tableSch.GetAllCols().Iter(func(tag uint64, col schema.Column) (stop bool, err error) {
-		if seenOne {
-			b.WriteRune(',')
+	_, err := r.IterSchema(tableSch, func(tag uint64, val types.Value) (stop bool, err error) {
+		if val == nil {
+			// don't print NULLs
+			return false, nil
 		}
-		b.WriteString(QuoteIdentifier(col.Name))
-		seenOne = true
-		return false, nil
-	})
 
-	if err != nil {
-		return "", err
-	}
-
-	b.WriteString(")")
-
-	b.WriteString(" VALUES (")
-	seenOne = false
-	_, err = r.IterSchema(tableSch, func(tag uint64, val types.Value) (stop bool, err error) {
 		if seenOne {
-			b.WriteRune(',')
+			c.WriteRune(',')
+			v.WriteRune(',')
 		}
+
 		col, _ := tableSch.GetAllCols().GetByTag(tag)
-		sqlString, err := valueAsSqlString(col.TypeInfo, val)
+
+		sqlString, err := valueAsSqlLiteral(col.TypeInfo, val)
 		if err != nil {
 			return true, err
 		}
-		b.WriteString(sqlString)
+
+		c.WriteString(QuoteIdentifier(col.Name))
+		v.WriteString(sqlString)
+
 		seenOne = true
 		return false, nil
 	})
@@ -82,9 +72,7 @@ func RowAsInsertStmt(r row.Row, tableName string, tableSch schema.Schema) (strin
 		return "", err
 	}
 
-	b.WriteString(");")
-
-	return b.String(), nil
+	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", QuoteIdentifier(tableName), c.String(), v.String()), nil
 }
 
 func RowAsDeleteStmt(r row.Row, tableName string, tableSch schema.Schema) (string, error) {
@@ -100,7 +88,7 @@ func RowAsDeleteStmt(r row.Row, tableName string, tableSch schema.Schema) (strin
 			if seenOne {
 				b.WriteString(" AND ")
 			}
-			sqlString, err := valueAsSqlString(col.TypeInfo, val)
+			sqlString, err := valueAsSqlLiteral(col.TypeInfo, val)
 			if err != nil {
 				return true, err
 			}
@@ -134,7 +122,7 @@ func RowAsUpdateStmt(r row.Row, tableName string, tableSch schema.Schema) (strin
 			if seenOne {
 				b.WriteRune(',')
 			}
-			sqlString, err := valueAsSqlString(col.TypeInfo, val)
+			sqlString, err := valueAsSqlLiteral(col.TypeInfo, val)
 			if err != nil {
 				return true, err
 			}
@@ -158,7 +146,7 @@ func RowAsUpdateStmt(r row.Row, tableName string, tableSch schema.Schema) (strin
 			if seenOne {
 				b.WriteString(" AND ")
 			}
-			sqlString, err := valueAsSqlString(col.TypeInfo, val)
+			sqlString, err := valueAsSqlLiteral(col.TypeInfo, val)
 			if err != nil {
 				return true, err
 			}
@@ -178,7 +166,7 @@ func RowAsUpdateStmt(r row.Row, tableName string, tableSch schema.Schema) (strin
 	return b.String(), nil
 }
 
-func valueAsSqlString(ti typeinfo.TypeInfo, value types.Value) (string, error) {
+func valueAsSqlLiteral(ti typeinfo.TypeInfo, value types.Value) (string, error) {
 	if types.IsNull(value) {
 		return "NULL", nil
 	}

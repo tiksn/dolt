@@ -119,7 +119,7 @@ func TestRowAsInsertStmt(t *testing.T) {
 			name:           "null values",
 			row:            dtestutils.NewTypedRow(id, "some guy", 100, false, nil),
 			sch:            dtestutils.TypedSchema,
-			expectedOutput: "INSERT INTO `people` (`id`,`name`,`age`,`is_married`,`title`) VALUES ('00000000-0000-0000-0000-000000000000','some guy',100,FALSE,NULL);",
+			expectedOutput: "INSERT INTO `people` (`id`,`name`,`age`,`is_married`) VALUES ('00000000-0000-0000-0000-000000000000','some guy',100,FALSE);",
 		},
 	}
 
@@ -259,7 +259,7 @@ func TestValueAsSqlString(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			act, err := valueAsSqlString(test.ti, test.val)
+			act, err := valueAsSqlLiteral(test.ti, test.val)
 			require.NoError(t, err)
 			assert.Equal(t, test.exp, act)
 		})
