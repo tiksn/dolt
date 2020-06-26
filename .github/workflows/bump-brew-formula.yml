@@ -1,6 +1,6 @@
 on:
   push:
-    tags: 'v*'
+    branches: [ db/test-bump-brew ]
 
 jobs:
   homebrew:
@@ -14,7 +14,7 @@ jobs:
       - uses: mislav/bump-homebrew-formula-action@v1
         with:
           formula-name: dolt
-          homebrew-tap: Homebrew/homebrew-core
+          homebrew-tap: liquidata-inc/homebrew-core
           base-branch: release
           download-url: ${{format('https://github.com/liquidata-inc/dolt/archive/v{0}.tar.gz', steps.get_version.outputs.VERSION)}}
           commit-message: ${{format('dolt {0}', steps.get_version.outputs.VERSION)}}
