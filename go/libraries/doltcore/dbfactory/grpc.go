@@ -19,7 +19,10 @@ import (
 	"fmt"
 	"net/url"
 
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/grpc"
+	"github.com/fatih/color"
 
 	remotesapi "github.com/liquidata-inc/dolt/go/gen/proto/dolt/services/remotesapi/v1alpha1"
 	"github.com/liquidata-inc/dolt/go/libraries/doltcore/grpcendpoint"
@@ -63,6 +66,14 @@ func (fact DoltRemoteFactory) CreateDB(ctx context.Context, nbf *types.NomsBinFo
 	return db, err
 }
 
+var PrintCommitMessageInterceptor = func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	if method == "/dolt.services.remotesapi.v1alpha1.ChunkStoreService/Commit" {
+		o, _ := prototext.MarshalOptions{Indent: "  ", EmitASCII: true}.Marshal(req.(proto.Message))
+		fmt.Fprintf(color.Output, "\n%s\n", string(o))
+	}
+	return invoker(ctx, method, req, reply, cc, opts...)
+}
+
 func (fact DoltRemoteFactory) newChunkStore(ctx context.Context, nbf *types.NomsBinFormat, urlObj *url.URL, params map[string]string) (chunks.ChunkStore, error) {
 	endpoint, opts, err := fact.dp.GetGRPCDialParams(grpcendpoint.Config{
 		Endpoint:     urlObj.Host,
@@ -75,6 +86,7 @@ func (fact DoltRemoteFactory) newChunkStore(ctx context.Context, nbf *types.Noms
 
 	opts = append(opts, grpc.WithChainUnaryInterceptor(remotestorage.EventsUnaryClientInterceptor(events.GlobalCollector)))
 	opts = append(opts, grpc.WithChainUnaryInterceptor(remotestorage.RetryingUnaryClientInterceptor))
+	opts = append(opts, grpc.WithChainUnaryInterceptor(PrintCommitMessageInterceptor))
 
 	conn, err := grpc.Dial(endpoint, opts...)
 	if err != nil {
