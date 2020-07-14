@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/liquidata-inc/dolt/go/cmd/dolt/cli"
 	"github.com/liquidata-inc/dolt/go/cmd/dolt/commands"
 	"github.com/liquidata-inc/dolt/go/libraries/doltcore/dtestutils"
 	"github.com/liquidata-inc/dolt/go/libraries/doltcore/env"
@@ -31,6 +30,7 @@ import (
 )
 
 func TestHistoryTable(t *testing.T) {
+	// history table test share a dEnv
 	dEnv := setupHistoryTests(t)
 	for _, test := range historyTableTests() {
 		t.Run(test.name, func(t *testing.T) {
@@ -39,19 +39,7 @@ func TestHistoryTable(t *testing.T) {
 	}
 }
 
-type historyTableTest struct {
-	name  string
-	query string
-	setup []testCommand
-	rows  []sql.Row
-}
-
-type testCommand struct {
-	cmd  cli.Command
-	args []string
-}
-
-var setupCommon = []testCommand{
+var historyTableSetup = []testCommand{
 	{commands.SqlCmd{}, []string{"-q", "create table test (" +
 		"pk int not null primary key," +
 		"c0 int);"}},
@@ -73,8 +61,8 @@ var setupCommon = []testCommand{
 	{commands.LogCmd{}, []string{}},
 }
 
-func historyTableTests() []historyTableTest {
-	return []historyTableTest{
+func historyTableTests() []integrationTest {
+	return []integrationTest{
 		{
 			name:  "select pk, c0 from dolt_history_test",
 			query: "select pk, c0 from dolt_history_test",
@@ -131,7 +119,7 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "compound or filter on commit hash",
-			query: "select pk, c0, commit_hash from dolt_history_test "+
+			query: "select pk, c0, commit_hash from dolt_history_test " +
 				"where commit_hash = hashof('head~1') or commit_hash = hashof('head~2');",
 			rows: []sql.Row{
 				{int32(0), int32(0), HEAD_1},
@@ -144,7 +132,7 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "commit hash in value set",
-			query: "select pk, c0, commit_hash from dolt_history_test "+
+			query: "select pk, c0, commit_hash from dolt_history_test " +
 				"where commit_hash in (hashof('head~1'), hashof('head~2'));",
 			rows: []sql.Row{
 				{int32(0), int32(0), HEAD_1},
@@ -157,7 +145,7 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "commit hash not in value set",
-			query: "select pk, c0, commit_hash from dolt_history_test "+
+			query: "select pk, c0, commit_hash from dolt_history_test " +
 				"where commit_hash not in (hashof('head~1'),hashof('head~2'));",
 			rows: []sql.Row{
 				{int32(0), int32(10), HEAD},
@@ -199,7 +187,7 @@ var INIT = ""   // HEAD~4
 func setupHistoryTests(t *testing.T) *env.DoltEnv {
 	ctx := context.Background()
 	dEnv := dtestutils.CreateTestEnv()
-	for _, c := range setupCommon {
+	for _, c := range historyTableSetup {
 		exitCode := c.cmd.Exec(ctx, c.cmd.Name(), c.args, dEnv)
 		require.Equal(t, 0, exitCode)
 	}
@@ -221,12 +209,12 @@ func setupHistoryTests(t *testing.T) *env.DoltEnv {
 	return dEnv
 }
 
-func testHistoryTable(t *testing.T, test historyTableTest, dEnv *env.DoltEnv) {
+func testHistoryTable(t *testing.T, test integrationTest, dEnv *env.DoltEnv) {
 	ctx := context.Background()
-	for _, c := range test.setup {
-		exitCode := c.cmd.Exec(ctx, c.cmd.Name(), c.args, dEnv)
-		require.Equal(t, 0, exitCode)
-	}
+
+	// history table tests share a dEnv and therefore must
+	// be read-only. Put all setup in historyTableSetup.
+	require.Empty(t, test.setup)
 
 	root, err := dEnv.WorkingRoot(ctx)
 	require.NoError(t, err)
