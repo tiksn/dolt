@@ -109,7 +109,7 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name:  "filter for a specific commit hash",
-			query: fmt.Sprintf("select pk, c0, commit_hash from dolt_history_test where commit_hash = '%s';", HEAD_1),
+			query: "select pk, c0, commit_hash from dolt_history_test where commit_hash = hashof('head~1');",
 			rows: []sql.Row{
 				{int32(0), int32(0), HEAD_1},
 				{int32(1), int32(1), HEAD_1},
@@ -119,7 +119,7 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name:  "filter out a specific commit hash",
-			query: fmt.Sprintf("select pk, c0, commit_hash from dolt_history_test where commit_hash != '%s';", HEAD_1),
+			query: "select pk, c0, commit_hash from dolt_history_test where commit_hash != hashof('head~1');",
 			rows: []sql.Row{
 				{int32(0), int32(10), HEAD},
 				{int32(1), int32(1), HEAD},
@@ -131,8 +131,8 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "compound or filter on commit hash",
-			query: fmt.Sprintf("select pk, c0, commit_hash from dolt_history_test "+
-				"where commit_hash = '%s' or commit_hash = '%s';", HEAD_1, HEAD_2),
+			query: "select pk, c0, commit_hash from dolt_history_test "+
+				"where commit_hash = hashof('head~1') or commit_hash = hashof('head~2');",
 			rows: []sql.Row{
 				{int32(0), int32(0), HEAD_1},
 				{int32(1), int32(1), HEAD_1},
@@ -144,8 +144,8 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "commit hash in value set",
-			query: fmt.Sprintf("select pk, c0, commit_hash from dolt_history_test "+
-				"where commit_hash in ('%s', '%s');", HEAD_1, HEAD_2),
+			query: "select pk, c0, commit_hash from dolt_history_test "+
+				"where commit_hash in (hashof('head~1'), hashof('head~2'));",
 			rows: []sql.Row{
 				{int32(0), int32(0), HEAD_1},
 				{int32(1), int32(1), HEAD_1},
@@ -157,8 +157,8 @@ func historyTableTests() []historyTableTest {
 		},
 		{
 			name: "commit hash not in value set",
-			query: fmt.Sprintf("select pk, c0, commit_hash from dolt_history_test "+
-				"where commit_hash not in ('%s','%s');", HEAD_1, HEAD_2),
+			query: "select pk, c0, commit_hash from dolt_history_test "+
+				"where commit_hash not in (hashof('head~1'),hashof('head~2'));",
 			rows: []sql.Row{
 				{int32(0), int32(10), HEAD},
 				{int32(1), int32(1), HEAD},
@@ -231,7 +231,7 @@ func testHistoryTable(t *testing.T, test historyTableTest, dEnv *env.DoltEnv) {
 	root, err := dEnv.WorkingRoot(ctx)
 	require.NoError(t, err)
 
-	actRows, err := sqle.ExecuteSelect(dEnv, dEnv.DoltDB, root, test.query)
+	actRows, err := executeSelect(dEnv, dEnv.DoltDB, root, test.query)
 	require.NoError(t, err)
 
 	require.Equal(t, len(test.rows), len(actRows))
