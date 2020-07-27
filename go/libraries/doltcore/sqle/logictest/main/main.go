@@ -22,29 +22,47 @@ import (
 	"github.com/liquidata-inc/sqllogictest/go/logictest"
 
 	"github.com/liquidata-inc/dolt/go/libraries/doltcore/sqle/logictest/dolt"
+	"flag"
+	"log"
+
+	"runtime"
+	"runtime/pprof"
 )
+
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
+var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
 // Runs all sqllogictest test files (or directories containing them) given as arguments.
 // Usage: $command (run|parse) [version] [file1.test dir1/ dir2/]
 // In run mode, runs the tests and prints results to stdout.
 // In parse mode, parses test results from the file given and prints them to STDOUT in a format to be imported by dolt.
 func main() {
-	args := os.Args[1:]
-
-	if len(args) < 1 {
-		panic("Usage: logictest (run|parse) [version] file1 file2 ...")
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close() // error handling omitted for example
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
 	}
 
-	if args[0] == "run" {
-		h := &dolt.DoltHarness{}
-		logictest.RunTestFiles(h, args[1:]...)
-	} else if args[0] == "parse" {
-		if len(args) < 3 {
-			panic("Usage: logictest parse <version> (file | dir/)")
+	h := &dolt.DoltHarness{}
+	logictest.RunTestFiles(h, "SQLLOGICTESTS_PATH/test")
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
 		}
-		parseTestResults(args[1], args[2])
-	} else {
-		panic("Unrecognized command " + args[0])
+		defer f.Close() // error handling omitted for example
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
 	}
 }
 
