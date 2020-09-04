@@ -122,7 +122,7 @@ func NewDiffTable(ctx *sql.Context, db Database, tblName string) (sql.Table, err
 	sqlSch = append(sqlSch, &sql.Column{
 		Name:     diffTypeColName,
 		Type:     sql.Text,
-		Default:  diffTypeModified,
+		Default:  &sql.ColumnDefaultValue{},
 		Nullable: false,
 		Source:   diffTblName,
 	})

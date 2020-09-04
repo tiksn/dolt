@@ -29,6 +29,7 @@ import (
 	sqle "github.com/liquidata-inc/go-mysql-server"
 	"github.com/liquidata-inc/go-mysql-server/auth"
 	"github.com/liquidata-inc/go-mysql-server/sql"
+	"github.com/liquidata-inc/go-mysql-server/sql/information_schema"
 	"github.com/liquidata-inc/go-mysql-server/sql/analyzer"
 	"github.com/liquidata-inc/ishell"
 	"github.com/liquidata-inc/vitess/go/vt/sqlparser"
@@ -1078,7 +1079,7 @@ func newSqlEngine(sqlCtx *sql.Context, readOnly bool, mrEnv env.MultiRepoEnv, ro
 	}
 
 	engine := sqle.New(c, analyzer.NewBuilder(c).WithParallelism(runtime.NumCPU()).Build(), &sqle.Config{Auth: au})
-	engine.AddDatabase(sql.NewInformationSchemaDatabase(engine.Catalog))
+	engine.AddDatabase(information_schema.NewInformationSchemaDatabase(engine.Catalog))
 
 	dsess := dsqle.DSessFromSess(sqlCtx.Session)
 
