@@ -51,6 +51,7 @@ require (
 	github.com/liquidata-inc/mmap-go v1.0.3
 	github.com/liquidata-inc/sqllogictest/go v0.0.0-20200320151923-b11801f10e15
 	github.com/liquidata-inc/vitess v0.0.0-20200911213404-87f76781a7c7
+	github.com/lukechampine/geiger v0.0.0-20200917145502-d87f9d0a02b1
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-runewidth v0.0.9

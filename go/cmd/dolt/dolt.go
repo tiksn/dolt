@@ -24,6 +24,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/pkg/profile"
+	"github.com/lukechampine/geiger"
 
 	"github.com/liquidata-inc/dolt/go/cmd/dolt/cli"
 	"github.com/liquidata-inc/dolt/go/cmd/dolt/commands"
@@ -93,6 +94,7 @@ const cpuProf = "cpu"
 const memProf = "mem"
 const blockingProf = "blocking"
 const traceProf = "trace"
+const geigerProf = "geiger"
 
 func main() {
 	os.Exit(runMain())
@@ -120,6 +122,9 @@ func runMain() int {
 				case traceProf:
 					fmt.Println("trace profiling enabled")
 					defer profile.Start(profile.TraceProfile).Stop()
+				case geigerProf:
+					fmt.Println("geiger profiling enabled")
+					go geiger.Count()
 				default:
 					panic("Unexpected prof flag: " + args[1])
 				}
