@@ -9,6 +9,12 @@ teardown() {
     teardown_common
 }
 
+@test "gc on empty dir" {
+    dolt gc
+    dolt gc
+    dolt gc -s
+}
+
 @test "dolt gc smoke test" {
     dolt sql <<SQL
 CREATE TABLE test (pk int PRIMARY KEY);
@@ -19,6 +25,8 @@ SQL
     [ "$status" -eq "0" ]
      [[ "$output" =~ "5" ]] || false
 
+    dolt gc
+    dolt gc
     run dolt gc
     [ "$status" -eq "0" ]
     run dolt status

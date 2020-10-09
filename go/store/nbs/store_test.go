@@ -38,8 +38,11 @@ import (
 func makeTestLocalStore(t *testing.T, maxTableFiles int) (st *NomsBlockStore, nomsDir string) {
 	ctx := context.Background()
 	nomsDir = filepath.Join(os.TempDir(), "noms_"+uuid.New().String()[:8])
-
 	err := os.MkdirAll(nomsDir, os.ModePerm)
+	require.NoError(t, err)
+
+	// create a v5 manifest
+	_, err = fileManifestV5{nomsDir}.Update(ctx, addr{}, manifestContents{}, &Stats{}, nil)
 	require.NoError(t, err)
 
 	st, err = newLocalStore(ctx, types.Format_Default.VersionString(), nomsDir, defaultMemTableSize, maxTableFiles)

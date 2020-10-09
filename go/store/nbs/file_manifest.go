@@ -54,7 +54,7 @@ type manifestChecker func(upstream, contents manifestContents) error
 
 // ParseManifest parses s a manifest file from the supplied reader
 func ParseManifest(r io.Reader) (ManifestInfo, error) {
-	fm5 := fileManifestv5{}
+	fm5 := fileManifestV5{}
 	return fm5.parseManifest(r)
 }
 
@@ -68,7 +68,7 @@ func MaybeMigrateFileManifest(ctx context.Context, dir string) (bool, error) {
 		return false, nil
 	}
 
-	fm5 := fileManifestv5{dir}
+	fm5 := fileManifestV5{dir}
 	ok, _, err := fm5.ParseIfExists(ctx, &Stats{}, nil)
 	if ok && err == nil {
 		// on v5, no need to migrate
@@ -116,7 +116,7 @@ func getFileManifest(ctx context.Context, dir string) (manifest, error) {
 		return fileManifestV4{dir}, nil
 	}
 
-	fm5 := fileManifestv5{dir}
+	fm5 := fileManifestV5{dir}
 	ok, _, err := fm5.ParseIfExists(ctx, &Stats{}, nil)
 	if ok && err == nil {
 		return fm5, nil
@@ -131,7 +131,7 @@ func getFileManifest(ctx context.Context, dir string) (manifest, error) {
 	return nil, fmt.Errorf("could not read file manifest")
 }
 
-// fileManifestv5 provides access to a NomsBlockStore manifest stored on disk in |dir|. The format
+// fileManifestV5 provides access to a NomsBlockStore manifest stored on disk in |dir|. The format
 // is currently human readable. The prefix contains 5 strings, followed by pairs of table file
 // hashes and their counts:
 //
@@ -140,7 +140,7 @@ func getFileManifest(ctx context.Context, dir string) (manifest, error) {
 //
 // |-- String --|- String --|...|-- String --|- String --|
 // :table 1 hash:table 1 cnt:...:table N hash:table N cnt|
-type fileManifestv5 struct {
+type fileManifestV5 struct {
 	dir string
 }
 
@@ -178,7 +178,7 @@ func openIfExists(path string) (*os.File, error) {
 	return f, err
 }
 
-func (fm5 fileManifestv5) Name() string {
+func (fm5 fileManifestV5) Name() string {
 	return fm5.dir
 }
 
@@ -188,7 +188,7 @@ func (fm5 fileManifestv5) Name() string {
 // that case, the other return values are undefined. If |readHook| is non-nil,
 // it will be executed while ParseIfExists() holds the manifest file lock.
 // This is to allow for race condition testing.
-func (fm5 fileManifestv5) ParseIfExists(ctx context.Context, stats *Stats, readHook func() error) (exists bool, contents manifestContents, err error) {
+func (fm5 fileManifestV5) ParseIfExists(ctx context.Context, stats *Stats, readHook func() error) (exists bool, contents manifestContents, err error) {
 	t1 := time.Now()
 	defer func() {
 		stats.ReadManifestLatency.SampleTimeSince(t1)
@@ -197,7 +197,7 @@ func (fm5 fileManifestv5) ParseIfExists(ctx context.Context, stats *Stats, readH
 	return parseIfExistsWithParser(ctx, fm5.dir, fm5.parseManifest, readHook)
 }
 
-func (fm5 fileManifestv5) Update(ctx context.Context, lastLock addr, newContents manifestContents, stats *Stats, writeHook func() error) (mc manifestContents, err error) {
+func (fm5 fileManifestV5) Update(ctx context.Context, lastLock addr, newContents manifestContents, stats *Stats, writeHook func() error) (mc manifestContents, err error) {
 	t1 := time.Now()
 	defer func() { stats.WriteManifestLatency.SampleTimeSince(t1) }()
 
@@ -211,7 +211,24 @@ func (fm5 fileManifestv5) Update(ctx context.Context, lastLock addr, newContents
 	return updateWithParseWriterAndChecker(ctx, fm5.dir, fm5.writeManifest, fm5.parseManifest, checker, lastLock, newContents, writeHook)
 }
 
-func (fm5 fileManifestv5) parseManifest(r io.Reader) (manifestContents, error) {
+func (fm5 fileManifestV5) UpdateGCGen(ctx context.Context, lastLock addr, newContents manifestContents, stats *Stats, writeHook func() error) (mc manifestContents, err error) {
+	t1 := time.Now()
+	defer func() { stats.WriteManifestLatency.SampleTimeSince(t1) }()
+
+	checker := func(upstream, contents manifestContents) error {
+		if contents.gcGen == upstream.gcGen {
+			return errors.New("UpdateGCGen() must update the garbage collection generation")
+		}
+		if contents.root != upstream.root {
+			return errors.New("UpdateGCGen() cannot update the root")
+		}
+		return nil
+	}
+
+	return updateWithParseWriterAndChecker(ctx, fm5.dir, fm5.writeManifest, fm5.parseManifest, checker, lastLock, newContents, writeHook)
+}
+
+func (fm5 fileManifestV5) parseManifest(r io.Reader) (manifestContents, error) {
 	manifest, err := ioutil.ReadAll(r)
 
 	if err != nil {
@@ -250,7 +267,7 @@ func (fm5 fileManifestv5) parseManifest(r io.Reader) (manifestContents, error) {
 	}, nil
 }
 
-func (fm5 fileManifestv5) writeManifest(temp io.Writer, contents manifestContents) error {
+func (fm5 fileManifestV5) writeManifest(temp io.Writer, contents manifestContents) error {
 	strs := make([]string, 2*len(contents.specs)+prefixLen)
 	strs[0], strs[1], strs[2], strs[3], strs[4] = StorageVersion, contents.vers, contents.lock.String(), contents.root.String(), contents.gcGen.String()
 	tableInfo := strs[prefixLen:]
@@ -409,7 +426,7 @@ func parseIfExistsWithParser(_ context.Context, dir string, pr manifestParser, r
 	return exists, contents, nil
 }
 
-func updateWithParseWriterAndChecker(_ context.Context, dir string, wr manifestWriter, pr manifestParser, vd manifestChecker, lastLock addr, newContents manifestContents, writeHook func() error) (mc manifestContents, err error) {
+func updateWithParseWriterAndChecker(_ context.Context, dir string, wr manifestWriter, pr manifestParser, ch manifestChecker, lastLock addr, newContents manifestContents, writeHook func() error) (mc manifestContents, err error) {
 	var tempManifestPath string
 
 	// Write a temporary manifest file, to be renamed over manifestFileName upon success.
@@ -514,7 +531,7 @@ func updateWithParseWriterAndChecker(_ context.Context, dir string, wr manifestW
 	}
 
 	// this is where we assert that gcGen is unchanged
-	err = vd(upstream, newContents)
+	err = ch(upstream, newContents)
 
 	if err != nil {
 		return manifestContents{}, err
